@@ -1,0 +1,85 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and preferences",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "language": { "type": "string", "enum": ["en", "hi"] },
+        "userType": { "type": "string", "enum": ["student", "independent", "founder"] },
+        "location": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Idea": {
+      "title": "Idea",
+      "description": "Startup idea and core assumptions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "problem": { "type": "string" },
+        "targetCustomer": { "type": "string" },
+        "assumptions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "timeConstraint": { "type": "string" },
+        "budgetConstraint": { "type": "string" },
+        "location": { "type": "string" },
+        "sector": { "type": "string" },
+        "validationScore": { "type": "number" },
+        "status": { "type": "string", "enum": ["draft", "active", "validated", "pivoted"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title"]
+    },
+    "Experiment": {
+      "title": "Experiment",
+      "description": "A validation experiment for an idea",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ideaId": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "goal": { "type": "string" },
+        "type": { "type": "string", "enum": ["survey", "landing_page", "whatsapp_outreach", "field_interview", "other"] },
+        "status": { "type": "string", "enum": ["planned", "running", "completed"] },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "reach": { "type": "number" },
+            "positiveSignals": { "type": "number" },
+            "conversionRate": { "type": "number" }
+          }
+        },
+        "templateData": { "type": "object" },
+        "learnings": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ideaId", "userId", "name", "type"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/ideas/{ideaId}": {
+      "schema": "Idea",
+      "description": "Startup ideas"
+    },
+    "/ideas/{ideaId}/experiments/{experimentId}": {
+      "schema": "Experiment",
+      "description": "Experiments for a specific idea"
+    }
+  }
+}

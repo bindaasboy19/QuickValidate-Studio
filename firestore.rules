@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (auth.uid)
+    // Fields: uid, email, displayName, language, userType, location, createdAt
+    //
+    // Collection: ideas
+    // Document ID: ideaId
+    // Fields: id, userId, title, description, problem, targetCustomer, assumptions, 
+    //         timeConstraint, budgetConstraint, location, sector, validationScore, status, createdAt
+    //
+    // Collection: ideas/{ideaId}/experiments
+    // Document ID: experimentId
+    // Fields: id, ideaId, userId, name, goal, type, status, metrics, templateData, learnings, createdAt, completedAt
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isIdeaOwner(ideaId) {
+      return isAuthenticated() && request.auth.uid == get(/databases/$(database)/documents/ideas/$(ideaId)).data.userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid is string &&
+             data.email is string &&
+             (!('language' in data) || data.language in ['en', 'hi']) &&
+             (!('userType' in data) || data.userType in ['student', 'independent', 'founder']);
+    }
+
+    function isValidIdea(data) {
+      return data.keys().hasAll(['userId', 'title']) &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200;
+    }
+
+    function isValidExperiment(data) {
+      return data.keys().hasAll(['ideaId', 'userId', 'name', 'type']) &&
+             data.userId == request.auth.uid &&
+             data.type in ['survey', 'landing_page', 'whatsapp_outreach', 'field_interview', 'other'];
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+
+    match /ideas/{ideaId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidIdea(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && isValidIdea(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      match /experiments/{experimentId} {
+        allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+        allow create: if isAuthenticated() && isValidExperiment(request.resource.data);
+        allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && isValidExperiment(request.resource.data);
+        allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      }
+    }
+  }
+}
